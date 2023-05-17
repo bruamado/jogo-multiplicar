@@ -7,8 +7,12 @@ import threading as th
 
 
 class App:
+
     def __init__(self):
-        self.highscore, self.range = App.lerDados()
+        self.rangeValues = ["5", "6", "7", "8", "9", "10", "15", "20",
+                            "25"]  # Valores que serão disponibilizados para seleção de range
+        self.dados = dict()
+        self.recuperaDados()
         self.labelHighscore = None
         self.pontos = 0
         self.conta = None
@@ -24,18 +28,41 @@ class App:
         self.inicializaMenu()
 
     def checaHighscore(self):
-        if self.pontos > self.highscore:
-            App.gravaDados(self.pontos)
-            self.highscore = self.pontos
-            self.labelHighscore.configure(text="Maior pontuação: {}".format(self.pontos))
+        rangeAtual = self.dados['range']
+        print("rangeAtual:", rangeAtual)
+        print("self.dados['range']:", self.dados['range'])
+        print("self.pontos:", self.pontos)
+        if self.pontos > self.dados[rangeAtual]:
+            self.dados[rangeAtual] = self.pontos
+            self.salvaDados()
             tk.messagebox.showinfo('Novo record!', "Parabéns!! Você conseguiu fazer um novo record!\nVocê "
                                                    "acertou {} contas seguidas!!".format(self.pontos))
+            self.labelHighscore.configure(text="Maior pontuação: {}".format(self.dados[self.dados['range']]))
 
-    def checaRange(self):
+    def recuperaDados(self):
+        try:
+            file = open("data.data", "r")
+            self.dados = eval(file.read())
+            print("Recuperei os dados:", self.dados)
+            file.close()
+        except (FileNotFoundError, ValueError, IndexError):
+            self.dados['range'] = int(self.rangeValues[0])
+            for i in self.rangeValues:
+                self.dados[int(i)] = 0
+            print("Criei os dados:", self.dados)
+
+    def salvaDados(self):
+        file = open("data.data", "w")
+        file.write(repr(self.dados))
+        file.close()
+        print("Salvei os dados:", repr(self.dados))
+
+    def rangeSelecionada(self):
         newRange = int(self.boxRange.get())
-        if self.range != newRange:
-            App.gravaDados(_rg=newRange)
-            self.range = newRange
+        if self.dados['range'] != newRange:
+            self.dados['range'] = newRange
+            self.labelHighscore.configure(text="Maior pontuação: {}".format(self.dados[self.dados['range']]))
+            self.salvaDados()
 
     def inicializaMenu(self):
         # linha 0
@@ -43,7 +70,7 @@ class App:
         labelTitulo.grid(row=0, column=1, columnspan=1, pady=(0, 20), padx=(30, 30), sticky="WE")
 
         # linha 1
-        self.labelHighscore = tk.Label(self.menu, text="Maior pontuação: {}".format(self.highscore),
+        self.labelHighscore = tk.Label(self.menu, text="Maior pontuação: {}".format(self.dados[self.dados['range']]),
                                        font=("Times New Roman", 16, "bold"))
         self.labelHighscore.grid(row=1, column=1, columnspan=1, pady=(0, 30), sticky="WE")
 
@@ -53,11 +80,12 @@ class App:
 
         # linha 3
         txtVariable = tk.StringVar()
-        txtVariable.set(str(self.range))
+        txtVariable.set(str(self.dados['range']))
         self.boxRange = ttk.Combobox(self.menu, textvariable=txtVariable, justify=tk.CENTER,
-                                     width=5, values=("5", "6", "7", "8", "9", "10", "15", "20", "25"),
+                                     width=5, values=tuple(self.rangeValues),
                                      state="readonly")
         self.boxRange.grid(row=3, column=1, columnspan=1, pady=(0, 30))
+        self.boxRange.bind("<<ComboboxSelected>>", lambda e: self.rangeSelecionada())
 
         # linha 4
         buttonJogar = tk.Button(self.menu, text="JOGAR!", font=("Tahoma", 12, "bold"), command=self.iniciaJogo)
@@ -72,7 +100,6 @@ class App:
         self.menu.mainloop()
 
     def iniciaJogo(self):
-        self.checaRange()
         self.menu.withdraw()
         self.jogar = tk.Toplevel(self.menu)
         self.jogar.title("Jogo de multiplicar")
@@ -144,14 +171,16 @@ class App:
         self.centraliza(self.jogar)
 
     def gerarConta(self):
-        x = random.randint(0, self.range)
-        y = random.randint(0, self.range)
+        x = random.randint(0, self.dados['range'])
+        y = random.randint(0, self.dados['range'])
         self.conta = (x, y)
         self.resultadoConta = x * y
         print("Conta[0]:", self.conta[0], "conta[1]:", self.conta[1], "contaResultado:", self.resultadoConta)
+        print("self.dados:")
+        print(self.dados)
 
     def acertou(self):
-        playsound('sucess.mp3', False)
+        playsound('https://github.com/bruamado/jogoMultiplicar/raw/main/sucess.mp3', False)
         if self.timer:
             self.timer.cancel()
             del self.timer
@@ -175,30 +204,6 @@ class App:
 
         altura -= alturaTela * 0.04  # Incrementa 4% da tela na altura (afim de desconsiderar a taskbar do windows)
         tela.geometry("+{}+{}".format(int(largura), int(altura)))
-
-    @staticmethod
-    def lerDados():
-        """Lê o arquivo data.data e retorna uma tupla com o Highscore e Range possível nas contas"""
-        try:
-            file = open("data.data", "r")
-            data = file.read().split(":")
-            file.close()
-            return int(data[0]), int(data[1])
-        except (FileNotFoundError, ValueError, IndexError):
-            return 0, 5
-
-    @staticmethod
-    def gravaDados(highscore=None, _rg=None):
-        if not highscore and not _rg:
-            return
-        hs, rg = App.lerDados()
-        if highscore and highscore > hs:
-            hs = highscore
-        if _rg and _rg != rg:
-            rg = _rg
-        file = open("data.data", "w")
-        file.write("{}:{}".format(hs, rg))
-        file.close()
 
     @staticmethod
     def validarNumero(entrada):
