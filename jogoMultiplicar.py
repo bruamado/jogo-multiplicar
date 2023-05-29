@@ -4,13 +4,14 @@ import tkinter.messagebox
 import random
 from playsound import playsound
 import threading as th
+import json
 
 
 class App:
 
     def __init__(self):
         self.rangeValues = ["5", "6", "7", "8", "9", "10", "15", "20",
-                            "25"]  # Valores que serão disponibilizados para seleção de range
+                            "25"]  # Valores disponibilizados para seleção de range
         self.dados = dict()
         self.recuperaDados()
         self.labelHighscore = None
@@ -29,39 +30,33 @@ class App:
 
     def checaHighscore(self):
         rangeAtual = self.dados['range']
-        print("rangeAtual:", rangeAtual)
-        print("self.dados['range']:", self.dados['range'])
-        print("self.pontos:", self.pontos)
-        if self.pontos > self.dados[rangeAtual]:
-            self.dados[rangeAtual] = self.pontos
+        if self.pontos > self.dados[str(rangeAtual)]:
+            self.dados[str(rangeAtual)] = self.pontos
             self.salvaDados()
             tk.messagebox.showinfo('Novo record!', "Parabéns!! Você conseguiu fazer um novo record!\nVocê "
                                                    "acertou {} contas seguidas!!".format(self.pontos))
-            self.labelHighscore.configure(text="Maior pontuação: {}".format(self.dados[self.dados['range']]))
+            self.labelHighscore.configure(text="Maior pontuação: {}".format(self.dados[str(self.dados['range'])]))
 
     def recuperaDados(self):
         try:
-            file = open("data.data", "r")
-            self.dados = eval(file.read())
-            print("Recuperei os dados:", self.dados)
+            file = open("data.json", "r")
+            self.dados = json.loads(file.read())
             file.close()
         except (FileNotFoundError, ValueError, IndexError):
             self.dados['range'] = int(self.rangeValues[0])
             for i in self.rangeValues:
-                self.dados[int(i)] = 0
-            print("Criei os dados:", self.dados)
+                self.dados[i] = 0
 
     def salvaDados(self):
-        file = open("data.data", "w")
-        file.write(repr(self.dados))
+        file = open("data.json", "w")
+        file.write(json.dumps(self.dados))
         file.close()
-        print("Salvei os dados:", repr(self.dados))
 
     def rangeSelecionada(self):
         newRange = int(self.boxRange.get())
         if self.dados['range'] != newRange:
             self.dados['range'] = newRange
-            self.labelHighscore.configure(text="Maior pontuação: {}".format(self.dados[self.dados['range']]))
+            self.labelHighscore.configure(text="Maior pontuação: {}".format(self.dados[str(self.dados['range'])]))
             self.salvaDados()
 
     def inicializaMenu(self):
@@ -70,7 +65,8 @@ class App:
         labelTitulo.grid(row=0, column=1, columnspan=1, pady=(0, 20), padx=(30, 30), sticky="WE")
 
         # linha 1
-        self.labelHighscore = tk.Label(self.menu, text="Maior pontuação: {}".format(self.dados[self.dados['range']]),
+        self.labelHighscore = tk.Label(self.menu, text="Maior pontuação: {}"
+                                       .format(self.dados[str(self.dados['range'])]),
                                        font=("Times New Roman", 16, "bold"))
         self.labelHighscore.grid(row=1, column=1, columnspan=1, pady=(0, 30), sticky="WE")
 
@@ -175,9 +171,6 @@ class App:
         y = random.randint(0, self.dados['range'])
         self.conta = (x, y)
         self.resultadoConta = x * y
-        print("Conta[0]:", self.conta[0], "conta[1]:", self.conta[1], "contaResultado:", self.resultadoConta)
-        print("self.dados:")
-        print(self.dados)
 
     def acertou(self):
         playsound('https://github.com/bruamado/jogoMultiplicar/raw/main/sucess.mp3', False)
