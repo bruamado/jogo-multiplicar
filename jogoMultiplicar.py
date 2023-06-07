@@ -115,6 +115,7 @@ class App:
                 self.labelPontos.configure(text="Pontos: {}".format(self.pontos))
                 entryResposta.delete(0, tk.END)
             else:
+                self.jogar.attributes('-disabled', True)
                 tk.messagebox.showerror('Fim de jogo', "Você errou!\nA resposta correta era: {}\nVocê conseguiu"
                                                        " fazer {} ponto(s).".format(self.resultadoConta, self.pontos))
                 self.jogar.destroy()
